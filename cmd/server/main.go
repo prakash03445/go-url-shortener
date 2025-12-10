@@ -11,6 +11,11 @@ import (
 	"github.com/go-redis/redis/v8"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"go-url-shortener/internal/handler"
+	"go-url-shortener/internal/router"
+	"go-url-shortener/internal/service"
+	"go-url-shortener/internal/repository"
 )
 
 var ctx = context.Background()
@@ -57,8 +62,14 @@ func initializeRedis() *redis.Client {
 func main() {
 	log.Printf("Starting URL Shortener Server")
 
-	_ = initializePostgres()
+	db := initializePostgres()
 	_ = initializeRedis()
+
+	pgRepo := repository.NewPostgresRepo(db)
+
+	urlService := service.NewURLService(pgRepo)
+
+	h := handler.NewShortenerHandler(urlService)
 
 	r := chi.NewRouter()
 
@@ -66,6 +77,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
+
+	router.APIRouter(r, h)
 
 	listenAddr := os.Getenv("LISTEN_ADDR")
 	if listenAddr == "" {
