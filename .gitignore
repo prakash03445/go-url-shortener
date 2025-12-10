@@ -1,0 +1,30 @@
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+
+# Go binaries and artifacts
+# Ignore all built executables
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+
+# Executable built by 'go build'
+/url-shortener
+
+# Test results and temporary files
+*.out
+/testresults/
+
+# Dependency cache
+# Binaries go in $GOBIN
+# Package cache goes in $GOCACHE
+/vendor/
+/go-url-shortener
+
+# Environment files
+.env

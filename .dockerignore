@@ -1,0 +1,14 @@
+# --- Standard Development Artifacts ---
+# Ignore the Git history
+.git
+.gitignore
+.env
+.DS_Store
+
+# --- Build Artifacts ---
+# These are local artifacts created during development and are not needed by the builder
+*.exe
+*.dll
+*.out
+/vendor
+/bin
