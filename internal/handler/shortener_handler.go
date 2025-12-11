@@ -5,13 +5,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"errors"
 
 	"go-url-shortener/internal/model"
+	"github.com/go-chi/chi/v5"
+	"go-url-shortener/internal/service"
 )
 
 
 type URLService interface {
 	Shorten(longURL string) (*model.URL, error)
+	ResolveURL(shortCode string) (string, error)
 }
 
 
@@ -32,7 +36,6 @@ func NewShortenerHandler(s URLService) *ShortenerHandler {
     }
 }
 
-// ShortenURLHandler handles POST /api/v1/shorten
 func (h *ShortenerHandler) ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
 	var req model.ShortenRequest
 
@@ -64,4 +67,28 @@ func (h *ShortenerHandler) ShortenURLHandler(w http.ResponseWriter, r *http.Requ
 	if err := json.NewEncoder(w).Encode(response); err != nil {
         log.Printf("Handler Error: Failed to encode response: %v", err)
     }
+}
+
+func (h *ShortenerHandler) ResolveURLHandler(w http.ResponseWriter, r *http.Request) {
+
+	shortCode := chi.URLParam(r, "short_code")
+	if shortCode == "" {
+		http.Error(w, "Short code is missing.", http.StatusBadRequest) 
+		return
+	}
+
+	longURL, err := h.Service.ResolveURL(shortCode)
+
+	if err != nil {
+		if errors.Is(err, service.ErrURLNotFound) {
+			http.Error(w, "Short URL not found.", http.StatusNotFound)
+			return
+		}
+		
+		log.Printf("Error resolving URL %s: %v", shortCode, err)
+		http.Error(w, "Internal server error during lookup.", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, longURL, http.StatusFound) 
 }

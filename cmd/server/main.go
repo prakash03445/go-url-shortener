@@ -63,11 +63,12 @@ func main() {
 	log.Printf("Starting URL Shortener Server")
 
 	db := initializePostgres()
-	_ = initializeRedis()
+	rdb := initializeRedis()
 
 	pgRepo := repository.NewPostgresRepo(db)
+	redisRepo := repository.NewRedisRepo(rdb)
 
-	urlService := service.NewURLService(pgRepo)
+	urlService := service.NewURLService(pgRepo, redisRepo)
 
 	h := handler.NewShortenerHandler(urlService)
 
@@ -79,6 +80,7 @@ func main() {
 	})
 
 	router.APIRouter(r, h)
+	router.RedirectRouter(r, h)
 
 	listenAddr := os.Getenv("LISTEN_ADDR")
 	if listenAddr == "" {
