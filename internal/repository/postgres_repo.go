@@ -21,3 +21,13 @@ func (r *PostgresRepository) CreateURL(url *model.URL) error {
 	}
 	return nil
 }
+
+func (r *PostgresRepository) FindByShortCode(shortCode string) (*model.URL, error) {
+	var url model.URL
+	result := r.DB.Where("short_code = ?", shortCode).First(&url)
+	
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &url, nil
+}
