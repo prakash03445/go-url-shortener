@@ -28,3 +28,7 @@
 
 # Environment files
 .env
+
+# ssl Certificates
+certs/*.crt 
+certs/*.key 
