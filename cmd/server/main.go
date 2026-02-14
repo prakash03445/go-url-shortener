@@ -4,8 +4,10 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"time"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-redis/redis/v8"
@@ -13,9 +15,9 @@ import (
 	"gorm.io/gorm"
 
 	"go-url-shortener/internal/handler"
+	"go-url-shortener/internal/repository"
 	"go-url-shortener/internal/router"
 	"go-url-shortener/internal/service"
-	"go-url-shortener/internal/repository"
 )
 
 var ctx = context.Background()
@@ -82,13 +84,37 @@ func main() {
 	router.APIRouter(r, h)
 	router.RedirectRouter(r, h)
 
-	listenAddr := os.Getenv("LISTEN_ADDR")
-	if listenAddr == "" {
-		listenAddr = ":8080"
-	}
+	srv := &http.Server{
+        Addr:    ":8080",
+        Handler: r,
+    }
 
-	log.Printf("Server listenting on %s", listenAddr)
-	if err := http.ListenAndServe(listenAddr, r); err != nil {
-		log.Fatalf("Error starting server: %v", err)
-	}
+	go func() {
+        log.Printf("Server listening on :8080")
+        if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+            log.Fatalf("listen: %s\n", err)
+        }
+    }()
+
+	stop := make(chan os.Signal, 1)
+    signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+    <-stop
+    log.Println("Shutting down server...")
+
+    shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
+
+    if err := srv.Shutdown(shutdownCtx); err != nil {
+        log.Fatalf("Server forced to shutdown: %v", err)
+    }
+
+    log.Println("Closing database connections...")
+    
+    sqlDB, _ := db.DB()
+    sqlDB.Close()
+    
+    rdb.Close()
+
+    log.Println("Server exited gracefully")
 }
